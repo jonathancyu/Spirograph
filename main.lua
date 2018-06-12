@@ -1,8 +1,4 @@
-do
-
-end
--- end testing environment
-
+local math2 	= require("math2")
 local line 		= {}
 
 function love.load()
@@ -29,134 +25,41 @@ do
 	end
 end
 
-
--- t = 6.2888888888889 
---currently, the problem with this is that aboutSame  thinks things are about the same on basically the first step for slow draws.
-
 --state
-local tick = love.timer.getTime
-local tickrate = .01/144
-local incrementrate = 1/45
-local radius = 200
-local radiusinner = 132
-local linedist = 75
-local k = radiusinner/radius
-local l = linedist/radiusinner
-local center = {x=_G.window_width/2, y=_G.window_height/2}
-local t = 0
+
+
+
+local radius 			= 200
+local radiusinner 		= 120
+local linedist 			= 60
+	local k 			= radiusinner/radius
+	local l 			= linedist/radiusinner
+
+local center 			= {x=_G.window_width/2, y=_G.window_height/2}
+	local innercircle 	= {x = 0, y = 0}
+	local lastx, lasty 	= 0, 0
+
+local get = math2.lcm(2, 1, math2.reduce(2*radiusinner, radius - radiusinner)) * math.pi
+
+local drawtime 			= .5
+local tick 				= love.timer.getTime
+	local t 			= 0
+	local start 		= tick()
+	local lasttick 		= tick()
+	local done 			= false
+
+local resolution 		= 50
+	local tickrate 		= drawtime/(get*resolution)
+	local incrementrate = (1/resolution)
+
 local trace = line.new()
 local otrace = line.new()
-
-
-for i = 1, 301 do
-	local x = (1-k)*math.cos((i/300)*2*math.pi)
-	local y = (1-k)*math.sin((i/300)*2*math.pi)
-	otrace.add(center.x + radius * x, center.y + radius * y)
-end
-
-local lasttick = tick()
-
-local start = {x = ((1-k) + l*k), y = 0}
-local done = false
-
-local mult = 2*math.pi
-
-local function primeFactors(n)
-	local factors = {} 
-	for i = 2, math.floor(math.sqrt(n)) do
-		local exp = 0
-		while n % i == 0 do
-			exp = exp + 1
-			n = n/i
-		end
-		if exp > 0 then 
-			factors[i] = exp
-		end
+	for i = 1, 301 do
+		local x = (1-k)*math.cos((i/300)*2*math.pi)
+		local y = (1-k)*math.sin((i/300)*2*math.pi)
+		otrace.add(center.x + radius * x, center.y + radius * y)
 	end
-	if (n > 1) then
-		factors[n] = 1
-	end
-	return factors
-end
 
-local function total(a)
-	local result = 1
-	for i, exp in pairs(a) do
-		result = result * i^exp
-	end
-	return result
-end
-
-local function pfGCD(a, b) -- prime factorization gcd
-	local aFactors, bFactors = primeFactors(a), primeFactors(b)
-	local commonFactors = {}
-
-	for n, exp in pairs(aFactors) do
-		if bFactors[n] then
-			local count = 0
-			while aFactors[n] > 0 and bFactors[n] > 0 do
-				count = count + 1
-				aFactors[n] = aFactors[n] - 1
-				bFactors[n] = bFactors[n] - 1
-			end
-			commonFactors[n] = count
-		end
-	end
-	return total(commonFactors)
-end
-
-local function pfLCM(a, b) -- prime factorization lcm
-	local aFactors, bFactors = primeFactors(a), primeFactors(b)
-	local commonFactors = {}
-
-	for n, exp in pairs(aFactors) do
-		if bFactors[n] then
-			local count = 0
-			while aFactors[n] > 0 and bFactors[n] > 0 do
-				count = count + 1
-				aFactors[n] = aFactors[n] - 1
-				bFactors[n] = bFactors[n] - 1
-			end
-			commonFactors[n] = count
-		end
-	end
-	return total(aFactors) * total(commonFactors) * total(bFactors)
-end
-
-
-local function fgcd(a, b, c, d) -- a/b, c/d
-	local nGCD = pfGCD(a, c)
-	local dLCM = pfLCM(b, d)
-
-	return nGCD/dLCM
-end
-
-local function gcd(a, b)
-	while b ~= 0 do
-		local t = b
-		b = a%b
-		a = t
-	end
-	return a
-end
- 
-
-local function lcm(a, b, c, d) -- a/b, c/d
-	return ((a/b)*(c/d))/fgcd(a, b, c, d)
-end
-
-local function reduce(a, b) -- a/b
-	local g = gcd(a, b)
-	return a/g, b/g
-end
-
-
-
-
-local get = lcm(2, 1, reduce(2*radiusinner, radius - radiusinner)) * math.pi
-
-local innercircle = {x = 0, y = 0}
-local lastx, lasty = 0, 0
 
 function love.update(dt)
 	local current = tick()
@@ -178,7 +81,7 @@ function love.update(dt)
 			local y2 = ((1-k)*math.sin(t) - l*k*math.sin(t*(1-k)/k))
 			trace.add(center.x + radius * x2, center.y + radius * y2)
 			done = true
-			print("DONE", t)
+			print(string.format("Drawn in %f seconds", tick()-start))
 		end
 		love.update(dt)
 	end
