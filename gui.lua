@@ -8,7 +8,7 @@ local function tween(start, goal, delta)
 	return start + ((goal-start) * delta)
 end
 
-function gui.newButton(text, x, y, width, height, _color, alpha, textColor, textAlpha, font, fontSize, clicked, mouseover, tweens, tweentime, data)
+function gui.newButton(text, x, y, width, height, _color, alpha, textColor, textAlpha, _font, fontSize, clicked, mouseover, tweens, tweentime, data)
 	local self = {
 			text = text, 
 			x = x, y = y, width = width, height = height, 
@@ -30,6 +30,8 @@ function gui.newButton(text, x, y, width, height, _color, alpha, textColor, text
 	for val, goal in pairs(tweens) do
 		tweenstarts[val] = self[val]
 	end
+
+	local font = love.graphics.newFont(_font, fontSize)
 
 	function self.draw()
 		love.graphics.setColor(self.color.r, self.color.g, self.color.b, self.alpha)
@@ -64,7 +66,7 @@ function gui.newButton(text, x, y, width, height, _color, alpha, textColor, text
 	return self
 end
 
-local function contain(n, min, max)
+function gui.constrain(n, min, max)
 	if n < min then 
 		return min
 	elseif n > max then
@@ -82,21 +84,23 @@ local function snap(n)
 	end
 end
 
-function gui.newSlider(x, y, barWidth, barHeight, sliderWidth, sliderHeight, barColor, sliderColor, defaultValue, minValue, maxValue, padding, update, released)
+function gui.newSlider(x, y, barWidth, barHeight, sliderWidth, sliderHeight, barColor, sliderColor, _font, fontSize, valueColor, defaultValue, minValue, maxValue, padding, step)
 	local self = {
 		x = x, y = y - (barHeight/2), width = barWidth, height = barHeight,
 		value = defaultValue,
+		maxValue = maxValue,
+		minValue = minValue,
+		range = maxValue - minValue,
 		clicked = false,
-		update = update,
-		released = released
+		update = step
 	}
-	local range = maxValue - minValue
 
 	local minPos = x + (padding)
 	local maxPos = x + barWidth - padding 
 	local posRange = maxPos - minPos
-	local pos = padding + (range*x + posRange * (defaultValue - minValue))/range
-	print(pos)
+	local pos = padding + (self.range*x + posRange * (defaultValue - self.minValue))/self.range
+
+	local font = love.graphics.newFont(_font, fontSize)
 
 	function self.draw()
 		love.graphics.setColor(barColor.args())
@@ -105,14 +109,19 @@ function gui.newSlider(x, y, barWidth, barHeight, sliderWidth, sliderHeight, bar
 		love.graphics.rectangle("fill",
 								pos - (sliderWidth/2),
 								y - (sliderHeight/2), sliderWidth, sliderHeight)
+		love.graphics.setFont(font)
+		love.graphics.setColor(valueColor.args())
+		love.graphics.print(self.value, self.x + self.width, self.y)
 	end
 
 	function self.step(dt, mx, my)
+		self:update(dt, mx, my)
+		self.value = gui.constrain(self.value, self.minValue, self.maxValue)
 		if self.clicked then
-			pos = contain(mx, minPos, maxPos)
-			self.value = snap(((pos - x - padding)/(posRange) * range) + minValue)
-			print(self.value)
+			pos = gui.constrain(mx, minPos, maxPos)
+			self.value = snap(((pos - x - padding)/(posRange) * self.range) + self.minValue)
 		else
+			pos = padding + (self.range*x + posRange * (self.value - self.minValue))/self.range
 		end
 	end
 

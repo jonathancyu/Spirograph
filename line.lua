@@ -18,6 +18,12 @@ function line.new()
 		end
 		table.insert(self.points, segment)
 	end
+
+	function self.destroy()
+		for i = #self.points, 1 do
+			table.remove(self, i)
+		end
+	end
 	return self
 end
 

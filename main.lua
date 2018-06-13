@@ -12,33 +12,35 @@ local gui 		= require("gui")
 --variables---------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-local radius 			= 200
-local radiusinner 		= 70
-local linedist 			= 89
-	local k 			= radiusinner/radius
-	local l 			= linedist/radiusinner
+local radius 			= 300
+local radiusInner 		= 107
+local lineDist 			= 300
+	local k 			= radiusInner/radius
+	local l 			= lineDist/radiusInner
 
 local center 			= {x=_G.window_width/2, y=_G.window_height/2}
 	local innercircle 	= {x = 0, y = 0}
 	local lastx, lasty 	= 0, 0
 
-local get 				= math2.lcm(2, 1, math2.reduce(2*radiusinner, radius - radiusinner)) * math.pi
+local get 				= math2.lcm(2, 1, math2.reduce(2*radiusInner, radius - radiusInner)) * math.pi
 
-local drawtime 			=  5
+local drawTime 			=  5
 local tick 				= love.timer.getTime
 	local t 			= 0
 	local start 		= tick()
 	local lasttick 		= tick()
 	local done 			= false
+	local paused 		= false
 
-local resolution 		= 50
-	local tickrate 		= drawtime/(get*resolution)
+local resolution 		= 100
+	local tickrate 		= drawTime/(get*resolution)
 	local incrementrate = (1/resolution)
+	local necessaryTicks= get/tickrate
 
 local trace = line.new()
 local otrace = line.new()
 
-local colorMode = "radius" --{"distance", "radius"} 
+local colorMode = "distance" --{"distance", "radius"} 
 local colorCycleTimes = 2
 local colorDistanceMult = 200
 local c = color.new(255, 0, 255)
@@ -48,38 +50,93 @@ local starth = h
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
+local live = false
+local newRadius = radius
+local newRadiusInner = radiusInner
+local newLineDist = linedist
 
 local sliders = {}
-sliders.outerRadius = gui.newSlider(10, 20, 
-					200, 20, 
-					18, 18, 
-					color.new(255, 255, 255), color.new(0, 0, 0), 
-					200, 50, 300,  --default, min, max, 
-					10, 
-					nil,
-					function() 
+	sliders.outerRadius = gui.newSlider(100, 20, 
+						200, 20, 
+						18, 18, 
+						color.new(255, 255, 255), color.new(0, 0, 0), 
+						"Roboto.ttf", 20, color.new(255, 255, 255),
+						radius, 50, 300,  --default, min, max, 
+						10, 
+						function(self, dt, mx, my)
+							newRadius = self.value
+							sliders.innerRadius.maxValue = self.value - 10
+							sliders.innerRadius.range = sliders.innerRadius.maxValue - sliders.innerRadius.minValue
+							sliders.innerRadius.step(dt, mx, my)
+							--sliders.lineDist.maxValue = self.value - 2
+							sliders.lineDist.step(dt, mx, my)
+						end)
+	sliders.innerRadius = gui.newSlider(100, 45, 
+						200, 20, 
+						18, 18, 
+						color.new(255, 255, 255), color.new(0, 0, 0), 
+						"Roboto.ttf", 20, color.new(255, 255, 255),
+						radiusInner, 2, radius-1,  --default, min, max, 
+						10,
+						function(self, dt, mx, my)
+							newRadiusInner = self.value
+						end)
+	sliders.lineDist 	= gui.newSlider(100, 70, 
+						200, 20, 
+						18, 18, 
+						color.new(255, 255, 255), color.new(0, 0, 0), 
+						"Roboto.ttf", 20, color.new(255, 255, 255), 
+						lineDist, 1, 300,--radius,  --default, min, max, 
+						10, 
+						function(self, dt, mx, my)
+							newLineDist = self.value
+						end)
 
-					end)
-sliders.innerRadius = gui.newSlider(10, 45, 
-					200, 20, 
-					18, 18, 
-					color.new(255, 255, 255), color.new(0, 0, 0), 
-					-5, -10, 10,  --default, min, max, 
-					10,
-					nil,
-					function() 
+local buttons = {}
+	buttons.draw = gui.newButton("DRAW", 100, 95, 120, 40, 
+		color.new(255, 255, 255), 0, 
+		color.new(255, 255, 255), 255,
+		"Roboto.ttf", 40, 
+		function(x, y)
+			done = true
+			innercircle 	= {x = 0, y = 0}
+			lastx, lasty 	= 0, 0
+			radius 			= newRadius
+			radiusInner 	= newRadiusInner
+			lineDist 		= newLineDist
 
-					end)
-sliders.lineDist 	= gui.newSlider(10, 70, 
-					200, 20, 
-					18, 18, 
-					color.new(255, 255, 255), color.new(0, 0, 0), 
-					-5, -10, 10,  --default, min, max, 
-					10, 
-					nil,
-					function() 
+			k 				= radiusInner/radius
+			l 				= lineDist/radiusInner
 
-					end)
+			get 			= math2.lcm(2, 1, math2.reduce(2*radiusInner, radius - radiusInner)) * math.pi
+
+			tickrate 		= drawTime/(get*resolution)
+
+			c = color.new(255, 0, 255)
+			h, s, v = color.rgbToHsv(c.args())
+			starth = h
+
+			t 				= 0
+			start 			= tick()
+			lasttick 		= tick()
+			done			= false
+			trace.destroy()
+			trace = nil
+			trace 			= line.new()		
+			otrace.destroy()
+			otrace = nil
+			otrace = line.new()
+				for i = 1, 301 do
+					local x = (1-k)*math.cos((i/300)*2*math.pi)
+					local y = (1-k)*math.sin((i/300)*2*math.pi)
+					otrace.add(center.x + radius * x, center.y + radius * y)
+				end	
+			necessaryTicks = get/tickrate
+			print(necessaryTicks)
+		end,
+		nil, 
+		{textColor = color.new(175, 255, 152)},
+		.6)
 
 function love.load()
 	love.window.setTitle("Spirograph")
@@ -92,22 +149,45 @@ function love.load()
 	end
 end
 
-function love.update(dt)
+
+function love.update(dt, recursive)
+	if not love.window.hasFocus() then return end
 	local mouseX, mouseY = love.mouse.getX(), love.mouse.getY()
 
 	--button handling
-	for name, slider in pairs(sliders) do
-		slider.step(dt, mouseX, mouseY)
+	if not recursive then
+		for name, slider in pairs(sliders) do
+			slider.step(dt, mouseX, mouseY)
+		end
+		for k, button in pairs(buttons) do
+			if gui.isInBounds(mouseX, mouseY, button.x, button.y, button.width, button.height)	then
+				button.mouseIsOver = true
+			else					
+				button.mouseIsOver = false
+			end
+			button.step(dt, mouseX, mouseY)
+		end
 	end
-	--spirograph drawing 
-
 	local current = tick()
-	if current-lasttick > tickrate and not done then	
-		lasttick = lasttick + tickrate	
-		t = t + incrementrate
 
-		local cx = (radius-radiusinner)*math.cos(t)
-		local cy = (radius-radiusinner)*math.sin(t)
+	--spirograph drawing 
+	if current-lasttick > tickrate and not done and not paused then	
+		local fps = love.timer.getFPS()
+		local actualTickRate = 1/fps
+		local compensationFrames = actualTickRate/tickrate
+		lasttick = lasttick + tickrate	
+		if necessaryTicks < 100000 then
+			t = t + incrementrate
+		else
+			for i = 1, 4 do
+				love.update(dt, true)
+				t = t + incrementrate
+			end
+			t = t + incrementrate
+		end
+
+		local cx = (radius-radiusInner)*math.cos(t)
+		local cy = (radius-radiusInner)*math.sin(t)
 		innercircle.x = cx
 		innercircle.y = cy
 		local x = ((1-k)*math.cos(t) + l*k*math.cos(t*(1-k)/k))
@@ -134,7 +214,9 @@ function love.update(dt)
 			done = true
 			print(string.format("Drawn in %f seconds", tick()-start))
 		end
-		love.update(dt)
+		if necessaryTicks < 100000 then
+			love.update(dt)
+		end
 	end
 end
 
@@ -150,24 +232,49 @@ end
 function love.mousereleased(x, y, button, istouch)
 	for name, slider in pairs(sliders) do
 		slider.clicked = false
-		slider.released()
+	end
+
+	for name, button in pairs(buttons) do
+		if button.mouseIsOver then
+			button.clicked(x, y)
+		end
+	end
+end
+
+function love.keypressed(key, scancode, isrepeat)
+	if key == "space" then
+		if paused == true then
+			lasttick = tick()
+		end
+		paused = not paused
 	end
 end
 
 function love.draw()
-	for name, slider in pairs(sliders) do
-		slider.draw()
-	end
 
 	if not done then
 		love.graphics.setColor(100, 100, 100)
 		otrace.draw()
 		love.graphics.setColor(255, 255, 255)
-		love.graphics.circle("line", center.x + innercircle.x, center.y + innercircle.y, radiusinner, 100)
+		love.graphics.circle("line", center.x + innercircle.x, center.y + innercircle.y, radiusInner, 100)
 		love.graphics.line(center.x + innercircle.x, center.y + innercircle.y, center.x + radius*lastx, center.y + radius*lasty)
 	end
 	for i = 1, #trace.points-1 do
 		love.graphics.setColor(trace.points[i].color.args())
 		love.graphics.line(trace.points[i].x, trace.points[i].y,  trace.points[i+1].x, trace.points[i+1].y)
 	end
+
+	for name, slider in pairs(sliders) do
+		slider.draw()
+	end
+
+	for name, button in pairs(buttons) do
+		button.draw()
+	end
+	--progress bar
+	love.graphics.setColor(255, 255, 255)
+	love.graphics.rectangle("fill", center.x - 300, _G.window_height - 30, 600, 2)
+	love.graphics.rectangle("fill", center.x - 300, _G.window_height - 34, 2, 4)
+	love.graphics.rectangle("fill", center.x + 298, _G.window_height - 34, 2, 4)
+	love.graphics.rectangle("fill", gui.constrain(center.x - 300 + (598 * (t/get)), center.x - 300, center.x + 298), _G.window_height - 34, 2, 4)
 end
