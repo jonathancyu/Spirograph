@@ -111,7 +111,7 @@ function gui.newSlider(x, y, barWidth, barHeight, sliderWidth, sliderHeight, bar
 								y - (sliderHeight/2), sliderWidth, sliderHeight)
 		love.graphics.setFont(font)
 		love.graphics.setColor(valueColor.args())
-		love.graphics.print(self.value, self.x + self.width, self.y)
+		love.graphics.print(self.value, self.x + self.width + padding, self.y)
 	end
 
 	function self.step(dt, mx, my)

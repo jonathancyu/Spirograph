@@ -1,6 +1,10 @@
 --[[
 TODO:
 add sliders/text input boxes
+figure out how many frames to simulate to satisfy draw time
+
+KNOWN BUGS:
+when the window loses focus when it is about to finish you get a stack overflow
 ]]
 local math2 	= require("math2")
 local color 	= require("color")
@@ -40,7 +44,8 @@ local resolution 		= 100
 local trace = line.new()
 local otrace = line.new()
 
-local colorMode = "distance" --{"distance", "radius"} 
+local colorModes = {"distance", "radius"} 
+local colorMode = 1
 local colorCycleTimes = 2
 local colorDistanceMult = 200
 local c = color.new(255, 0, 255)
@@ -55,8 +60,9 @@ local newRadius = radius
 local newRadiusInner = radiusInner
 local newLineDist = linedist
 
+
 local sliders = {}
-	sliders.outerRadius = gui.newSlider(100, 20, 
+	sliders.outerRadius = gui.newSlider(10, 20, 
 						200, 20, 
 						18, 18, 
 						color.new(255, 255, 255), color.new(0, 0, 0), 
@@ -71,7 +77,7 @@ local sliders = {}
 							--sliders.lineDist.maxValue = self.value - 2
 							sliders.lineDist.step(dt, mx, my)
 						end)
-	sliders.innerRadius = gui.newSlider(100, 45, 
+	sliders.innerRadius = gui.newSlider(10, 45, 
 						200, 20, 
 						18, 18, 
 						color.new(255, 255, 255), color.new(0, 0, 0), 
@@ -81,7 +87,7 @@ local sliders = {}
 						function(self, dt, mx, my)
 							newRadiusInner = self.value
 						end)
-	sliders.lineDist 	= gui.newSlider(100, 70, 
+	sliders.lineDist 	= gui.newSlider(10, 70, 
 						200, 20, 
 						18, 18, 
 						color.new(255, 255, 255), color.new(0, 0, 0), 
@@ -93,10 +99,21 @@ local sliders = {}
 						end)
 
 local buttons = {}
-	buttons.draw = gui.newButton("DRAW", 100, 95, 120, 40, 
+	buttons.color = gui.newButton("", 10, 85, 20, 20, 
+		color.new(255, 255, 255), 255,
+		color.new(0, 0, 0), 255,
+		"Roboto.ttf", 20,
+		function(x, y)
+			colorMode = (colorMode)%2 + 1
+			print(colorMode)
+		end,
+		nil, 
+		{color = color.new(175, 255, 152)}, 0.3)
+
+	buttons.draw = gui.newButton("DRAW", 6, 105, 120, 40, 
 		color.new(255, 255, 255), 0, 
 		color.new(255, 255, 255), 255,
-		"Roboto.ttf", 40, 
+		"Roboto2.ttf", 40, 
 		function(x, y)
 			done = true
 			innercircle 	= {x = 0, y = 0}
@@ -135,8 +152,7 @@ local buttons = {}
 			print(necessaryTicks)
 		end,
 		nil, 
-		{textColor = color.new(175, 255, 152)},
-		.6)
+		{textColor = color.new(175, 255, 152)}, 0.6)
 
 function love.load()
 	love.window.setTitle("Spirograph")
@@ -196,11 +212,11 @@ function love.update(dt, recursive)
 			lasty = y
 		local dist = math2.magnitude(center.x, center.y, x, y)
 		local segmentColor
-		if colorMode == "distance" then
+		if colorModes[colorMode] == "distance" then
 			h = (starth + (colorCycleTimes*360*(t/get)))%360
 			c.setColor(color.hsvToRgb(h, s, v))
 			segmentColor = c()
-		elseif colorMode == "radius" then
+		elseif colorModes[colorMode] == "radius" then
 			h = (starth + dist*colorDistanceMult)%360
 			c.setColor(color.hsvToRgb(h, s, v))
 			segmentColor = c()
@@ -250,8 +266,9 @@ function love.keypressed(key, scancode, isrepeat)
 	end
 end
 
-function love.draw()
+local font = love.graphics.newFont("Roboto.ttf", 20)
 
+function love.draw()
 	if not done then
 		love.graphics.setColor(100, 100, 100)
 		otrace.draw()
@@ -271,10 +288,24 @@ function love.draw()
 	for name, button in pairs(buttons) do
 		button.draw()
 	end
-	--progress bar
+
+	love.graphics.setColor(0, 0, 0)
+
+	love.graphics.setFont(font)
+	love.graphics.print("RADIUS", 11, 10)
+	love.graphics.print("INNER RADIUS", 11, 35)
+	love.graphics.print("LINE DISTANCE", 11, 60)
+
+	love.graphics.print(colorMode-1, 14, 85) -- tables index at 0, lua
+
 	love.graphics.setColor(255, 255, 255)
+	love.graphics.print("COLOR MODE", 35, 85)
+
+
 	love.graphics.rectangle("fill", center.x - 300, _G.window_height - 30, 600, 2)
 	love.graphics.rectangle("fill", center.x - 300, _G.window_height - 34, 2, 4)
 	love.graphics.rectangle("fill", center.x + 298, _G.window_height - 34, 2, 4)
 	love.graphics.rectangle("fill", gui.constrain(center.x - 300 + (598 * (t/get)), center.x - 300, center.x + 298), _G.window_height - 34, 2, 4)
+
+
 end
