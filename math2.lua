@@ -89,4 +89,8 @@ function self.reduce(a, b) -- a/b
 	return a/g, b/g
 end
 
+function self.magnitude(x1, y1, x2, y2)
+	return math.sqrt((x2-x1)^2 + (y2-y1)^2)
+end
+
 return self
