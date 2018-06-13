@@ -16,9 +16,9 @@ local gui 		= require("gui")
 --variables---------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-local radius 			= 300
-local radiusInner 		= 107
-local lineDist 			= 300
+local radius 			= 120
+local radiusInner 		= 110
+local lineDist 			= 200
 	local k 			= radiusInner/radius
 	local l 			= lineDist/radiusInner
 
@@ -44,9 +44,9 @@ local resolution 		= 100
 local trace = line.new()
 local otrace = line.new()
 
-local colorModes = {"distance", "radius"} 
+local colorModes = {"distance", "radius", "blank"} 
 local colorMode = 1
-local colorCycleTimes = 2
+local colorCycleTimes = 5
 local colorDistanceMult = 200
 local c = color.new(255, 0, 255)
 local h, s, v = color.rgbToHsv(c.args())
@@ -62,22 +62,21 @@ local newLineDist = linedist
 
 
 local sliders = {}
-	sliders.outerRadius = gui.newSlider(10, 20, 
+	sliders.outerRadius = gui.newSlider(10, 220, 
 						200, 20, 
 						18, 18, 
 						color.new(255, 255, 255), color.new(0, 0, 0), 
 						"Roboto.ttf", 20, color.new(255, 255, 255),
-						radius, 50, 300,  --default, min, max, 
+						radius, 50, 200,  --default, min, max, 
 						10, 
 						function(self, dt, mx, my)
 							newRadius = self.value
 							sliders.innerRadius.maxValue = self.value - 10
 							sliders.innerRadius.range = sliders.innerRadius.maxValue - sliders.innerRadius.minValue
 							sliders.innerRadius.step(dt, mx, my)
-							--sliders.lineDist.maxValue = self.value - 2
 							sliders.lineDist.step(dt, mx, my)
 						end)
-	sliders.innerRadius = gui.newSlider(10, 45, 
+	sliders.innerRadius = gui.newSlider(10, 245, 
 						200, 20, 
 						18, 18, 
 						color.new(255, 255, 255), color.new(0, 0, 0), 
@@ -87,30 +86,30 @@ local sliders = {}
 						function(self, dt, mx, my)
 							newRadiusInner = self.value
 						end)
-	sliders.lineDist 	= gui.newSlider(10, 70, 
+	sliders.lineDist 	= gui.newSlider(10, 270, 
 						200, 20, 
 						18, 18, 
 						color.new(255, 255, 255), color.new(0, 0, 0), 
 						"Roboto.ttf", 20, color.new(255, 255, 255), 
-						lineDist, 1, 300,--radius,  --default, min, max, 
+						lineDist, -200, 200,--radius,  --default, min, max, 
 						10, 
 						function(self, dt, mx, my)
 							newLineDist = self.value
 						end)
 
 local buttons = {}
-	buttons.color = gui.newButton("", 10, 85, 20, 20, 
+	buttons.color = gui.newButton("", 140, 285, 20, 20, 
 		color.new(255, 255, 255), 255,
 		color.new(0, 0, 0), 255,
 		"Roboto.ttf", 20,
 		function(x, y)
-			colorMode = (colorMode)%2 + 1
+			colorMode = (colorMode)%#colorModes + 1
 			print(colorMode)
 		end,
 		nil, 
 		{color = color.new(175, 255, 152)}, 0.3)
 
-	buttons.draw = gui.newButton("DRAW", 6, 105, 120, 40, 
+	buttons.draw = gui.newButton("DRAW", 7, 305, 120, 40, 
 		color.new(255, 255, 255), 0, 
 		color.new(255, 255, 255), 255,
 		"Roboto2.ttf", 40, 
@@ -173,6 +172,11 @@ function love.update(dt, recursive)
 	--button handling
 	if not recursive then
 		for name, slider in pairs(sliders) do
+			if gui.isInBounds(mouseX, mouseY, slider.x, slider.y, slider.width, slider.height)	then
+				slider.mouseIsOver = true
+			else					
+				slider.mouseIsOver = false
+			end
 			slider.step(dt, mouseX, mouseY)
 		end
 		for k, button in pairs(buttons) do
@@ -192,10 +196,10 @@ function love.update(dt, recursive)
 		local actualTickRate = 1/fps
 		local compensationFrames = actualTickRate/tickrate
 		lasttick = lasttick + tickrate	
-		if necessaryTicks < 100000 then
+		if necessaryTicks < 1000000 then
 			t = t + incrementrate
 		else
-			for i = 1, 4 do
+			for i = 1, 10 do
 				love.update(dt, true)
 				t = t + incrementrate
 			end
@@ -220,13 +224,15 @@ function love.update(dt, recursive)
 			h = (starth + dist*colorDistanceMult)%360
 			c.setColor(color.hsvToRgb(h, s, v))
 			segmentColor = c()
+		elseif colorModes[colorMode] == "blank" then
+			segmentColor = color.new(255, 255, 255)
 		end
 		trace.add(center.x + radius * x, center.y + radius * y, {color = segmentColor})
 		if t > get then
 			t = t + incrementrate
 			local x2 = ((1-k)*math.cos(t) + l*k*math.cos(t*(1-k)/k))
 			local y2 = ((1-k)*math.sin(t) - l*k*math.sin(t*(1-k)/k))
-			trace.add(center.x + radius * x2, center.y + radius * y2, {color = c()})
+			trace.add(center.x + radius * x2, center.y + radius * y2, {color = segmentColor})
 			done = true
 			print(string.format("Drawn in %f seconds", tick()-start))
 		end
@@ -267,13 +273,15 @@ function love.keypressed(key, scancode, isrepeat)
 end
 
 local font = love.graphics.newFont("Roboto.ttf", 20)
+local font2 = love.graphics.newFont("Roboto2.ttf", 20)
 
 function love.draw()
 	if not done then
-		love.graphics.setColor(100, 100, 100)
+		love.graphics.setColor(20, 20, 20)
 		otrace.draw()
 		love.graphics.setColor(255, 255, 255)
 		love.graphics.circle("line", center.x + innercircle.x, center.y + innercircle.y, radiusInner, 100)
+		love.graphics.circle("line", center.x, center.y, radius, 100)
 		love.graphics.line(center.x + innercircle.x, center.y + innercircle.y, center.x + radius*lastx, center.y + radius*lasty)
 	end
 	for i = 1, #trace.points-1 do
@@ -292,14 +300,14 @@ function love.draw()
 	love.graphics.setColor(0, 0, 0)
 
 	love.graphics.setFont(font)
-	love.graphics.print("RADIUS", 11, 10)
-	love.graphics.print("INNER RADIUS", 11, 35)
-	love.graphics.print("LINE DISTANCE", 11, 60)
+	love.graphics.print("R", 11, 210)
+	love.graphics.print("r", 12, 235)
+	love.graphics.print("D", 11, 260)
 
-	love.graphics.print(colorMode-1, 14, 85) -- tables index at 0, lua
+	love.graphics.print(colorMode-1, 144, 285) -- tables index at 0, lua
 
 	love.graphics.setColor(255, 255, 255)
-	love.graphics.print("COLOR MODE", 35, 85)
+	love.graphics.print("COLOR MODE", 10, 285)
 
 
 	love.graphics.rectangle("fill", center.x - 300, _G.window_height - 30, 600, 2)
@@ -307,5 +315,25 @@ function love.draw()
 	love.graphics.rectangle("fill", center.x + 298, _G.window_height - 34, 2, 4)
 	love.graphics.rectangle("fill", gui.constrain(center.x - 300 + (598 * (t/get)), center.x - 300, center.x + 298), _G.window_height - 34, 2, 4)
 
+	--preview	
+	local littleR = 100 * (newRadiusInner/newRadius)
+	if sliders.outerRadius.mouseIsOver or sliders.outerRadius.clicked then
+		print(true)
+		love.graphics.line(10, 105, 110, 105)
+		love.graphics.print("R", 12, 85)
+	end
+	if sliders.innerRadius.mouseIsOver or sliders.innerRadius.clicked then
+		love.graphics.line(210 - 2*littleR, 105, 210 - littleR, 105)
+		love.graphics.print("r", 215-2*littleR, 85)
+	end
+	if sliders.lineDist.mouseIsOver or sliders.lineDist.clicked then		
+		love.graphics.print("D", 210-littleR, 85)
+	end
+	love.graphics.line(210 - littleR, 105, 210-littleR + (newLineDist/newRadius)*100, 105)
 
+	love.graphics.circle("line", 210 - littleR, 105, littleR, 100)
+	love.graphics.circle("line", 110, 105, 100, 100)
+	love.graphics.circle("line", 210-littleR + (newLineDist/newRadius)*100, 105, 1, 100)
+
+	--love.graphics.print()
 end

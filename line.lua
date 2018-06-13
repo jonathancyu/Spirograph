@@ -2,7 +2,7 @@ local line = {}
 
 function line.new()
 	local self = {points = {}}
-
+	
 	function self.draw()
 		for i = 1, #self.points-1 do
 			love.graphics.line(self.points[i].x, self.points[i].y,  self.points[i+1].x, self.points[i+1].y)
