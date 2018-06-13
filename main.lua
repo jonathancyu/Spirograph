@@ -16,8 +16,8 @@ local gui 		= require("gui")
 --variables---------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-local radius 			= 120
-local radiusInner 		= 110
+local radius 			= 200
+local radiusInner 		= 27
 local lineDist 			= 200
 	local k 			= radiusInner/radius
 	local l 			= lineDist/radiusInner
@@ -44,8 +44,8 @@ local resolution 		= 100
 local trace = line.new()
 local otrace = line.new()
 
-local colorModes = {"distance", "radius", "blank"} 
-local colorMode = 1
+local colorModes = {"distance", "radius", "angle1", "angle2", "blank"} 
+local colorMode = 4
 local colorCycleTimes = 5
 local colorDistanceMult = 200
 local c = color.new(255, 0, 255)
@@ -216,15 +216,25 @@ function love.update(dt, recursive)
 			lasty = y
 		local dist = math2.magnitude(center.x, center.y, x, y)
 		local segmentColor
-		if colorModes[colorMode] == "distance" then
+		local cm = colorModes[colorMode]
+		if cm == "distance" then
 			h = (starth + (colorCycleTimes*360*(t/get)))%360
 			c.setColor(color.hsvToRgb(h, s, v))
 			segmentColor = c()
-		elseif colorModes[colorMode] == "radius" then
+		elseif cm == "radius" then
 			h = (starth + dist*colorDistanceMult)%360
 			c.setColor(color.hsvToRgb(h, s, v))
 			segmentColor = c()
-		elseif colorModes[colorMode] == "blank" then
+		elseif cm == "angle1" then
+			local p = ((t*(1-k)/k)%(2*math.pi))/(2*math.pi)
+			h = (starth + (p*360))%360
+			c.setColor(color.hsvToRgb(h, s, v))
+			segmentColor = c()
+		elseif cm == "angle2" then			
+			h = (starth + ((math.atan2(y, x)*360)/(2*math.pi)))%360
+			c.setColor(color.hsvToRgb(h, s, v))
+			segmentColor = c()
+		elseif cm == "blank" then
 			segmentColor = color.new(255, 255, 255)
 		end
 		trace.add(center.x + radius * x, center.y + radius * y, {color = segmentColor})
