@@ -1,6 +1,6 @@
 --[[
 TODO:
-add sliders/text input boxes
+add text input boxes
 figure out how many frames to simulate to satisfy draw time
 
 KNOWN BUGS:
