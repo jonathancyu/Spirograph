@@ -36,8 +36,8 @@ function love.load()
 end
 
 local radius 			= 200
-local radiusinner 		= 120
-local linedist 			= 60
+local radiusinner 		= 166
+local linedist 			= 100
 	local k 			= radiusinner/radius
 	local l 			= linedist/radiusinner
 
@@ -47,7 +47,7 @@ local center 			= {x=_G.window_width/2, y=_G.window_height/2}
 
 local get = math2.lcm(2, 1, math2.reduce(2*radiusinner, radius - radiusinner)) * math.pi
 
-local drawtime 			=  5
+local drawtime 			=  20
 local tick 				= love.timer.getTime
 	local t 			= 0
 	local start 		= tick()
@@ -66,8 +66,9 @@ local otrace = line.new()
 		otrace.add(center.x + radius * x, center.y + radius * y)
 	end
 
-		local colorModes = "radius" --{"distance", "radius"} 
+		local colorMode = "radius" --{"distance", "radius"} 
 		local colorCycleTimes = 2
+		local colorDistanceMult = 200
 		local c = color.new(200, 0, 200)
 		local h, s, v = color.rgbToHsv(c.args())
 		local starth = h
@@ -80,18 +81,27 @@ function love.update(dt)
 		lasttick = lasttick + tickrate	
 		t = t + incrementrate
 
-		h = (starth + (colorCycleTimes*360*(t/get)))%360
-		c.setColor(color.hsvToRgb(h, s, v))
-
 		local cx = (radius-radiusinner)*math.cos(t)
 		local cy = (radius-radiusinner)*math.sin(t)
 		innercircle.x = cx
 		innercircle.y = cy
 		local x = ((1-k)*math.cos(t) + l*k*math.cos(t*(1-k)/k))
 		local y = ((1-k)*math.sin(t) - l*k*math.sin(t*(1-k)/k))
-		lastx = x
-		lasty = y
-		trace.add(center.x + radius * x, center.y + radius * y, {color = c()})
+			lastx = x
+			lasty = y
+		local dist = math2.magnitude(center.x, center.y, x, y)
+		local segmentColor
+		if colorMode == "distance" then
+			h = (starth + (colorCycleTimes*360*(t/get)))%360
+			c.setColor(color.hsvToRgb(h, s, v))
+			segmentColor = c()
+		elseif colorMode == "radius" then
+			h = (starth + dist*colorDistanceMult)%360
+			c.setColor(color.hsvToRgb(h, s, v))
+			segmentColor = c()
+		end
+		segmentColor.print()
+		trace.add(center.x + radius * x, center.y + radius * y, {color = segmentColor})
 		if t > get then
 			t = t + incrementrate
 			local x2 = ((1-k)*math.cos(t) + l*k*math.cos(t*(1-k)/k))
@@ -110,7 +120,7 @@ function love.draw()
 		otrace.draw()
 		love.graphics.setColor(255, 255, 255)
 		love.graphics.circle("line", center.x + innercircle.x, center.y + innercircle.y, radiusinner, 100)
-		love.graphics.line(center.x + innercircle.x, center.y + innercircle.y, center.x +radius*lastx, center.y + radius*lasty)
+		love.graphics.line(center.x + innercircle.x, center.y + innercircle.y, center.x + radius*lastx, center.y + radius*lasty)
 	end
 	for i = 1, #trace.points-1 do
 		love.graphics.setColor(trace.points[i].color.args())
