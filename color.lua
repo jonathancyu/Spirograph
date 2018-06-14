@@ -9,6 +9,18 @@ function color.new(_r, _g, _b)
 		self.b = b
 	end
 
+	function self.setR(r)
+		self.r = r
+	end
+
+	function self.setG(g)
+		self.g = g
+	end
+
+	function self.setB(b)
+		self.b = b
+	end
+
 	function self.args()
 		return self.r, self.g, self.b
 	end
@@ -54,7 +66,9 @@ function color.rgbToHsv(r, g, b)
 	local c = V - min
 
 	local H
-	if V == r then
+	if c == 0 then
+		H = 0
+	elseif V == r then
 		H = ((g - b)/c)%6
 	elseif V == g then
 		H = (b - r)/c + 2
@@ -90,6 +104,8 @@ function color.hsvToRgb(H, S, V)
 		r, g, b = x, 0, c
 	elseif H > 5 and H < 6 then
 		r, g, b = c, 0, x
+	else
+		r, g, b = 0, 0, 0
 	end
 	return r, g, b
 end

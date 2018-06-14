@@ -84,9 +84,10 @@ local function snap(n)
 	end
 end
 
-function gui.newSlider(x, y, barWidth, barHeight, sliderWidth, sliderHeight, barColor, sliderColor, _font, fontSize, valueColor, defaultValue, minValue, maxValue, padding, step)
+function gui.newSlider(x, y, barWidth, barHeight, sliderWidth, sliderHeight, barColor, sliderColor, defaultValue, minValue, maxValue, padding, step)
 	local self = {
 		x = x, y = y - (barHeight/2), width = barWidth, height = barHeight,
+		sliderWidth = sliderWidth, sliderHeight = sliderHeight, sliderColor = sliderColor,
 		value = defaultValue,
 		maxValue = maxValue,
 		minValue = minValue,
@@ -98,35 +99,29 @@ function gui.newSlider(x, y, barWidth, barHeight, sliderWidth, sliderHeight, bar
 	local minPos = x + (padding)
 	local maxPos = x + barWidth - padding 
 	local posRange = maxPos - minPos
-	local pos = padding + (self.range*x + posRange * (defaultValue - self.minValue))/self.range
-
-	local font = love.graphics.newFont(_font, fontSize)
+	self.pos = padding + (self.range*x + posRange * (defaultValue - self.minValue))/self.range
 
 	function self.draw()
 		love.graphics.setColor(barColor.args())
 		love.graphics.rectangle("fill", self.x, self.y, barWidth, barHeight)
-		love.graphics.setColor(sliderColor.args())
+		love.graphics.setColor(self.sliderColor.args())
 		love.graphics.rectangle("fill",
-								pos - (sliderWidth/2),
+								self.pos - (sliderWidth/2),
 								y - (sliderHeight/2), sliderWidth, sliderHeight)
-		love.graphics.setFont(font)
-		love.graphics.setColor(valueColor.args())
-		love.graphics.print(self.value, self.x + self.width + padding, self.y)
 	end
 
 	function self.step(dt, mx, my)
 		self:update(dt, mx, my)
 		self.value = gui.constrain(self.value, self.minValue, self.maxValue)
 		if self.clicked then
-			pos = gui.constrain(mx, minPos, maxPos)
-			self.value = snap(((pos - x - padding)/(posRange) * self.range) + self.minValue)
+			self.pos = gui.constrain(mx, minPos, maxPos)
+			self.value = snap(((self.pos - x - padding)/(posRange) * self.range) + self.minValue)
 		else
-			pos = padding + (self.range*x + posRange * (self.value - self.minValue))/self.range
+			self.pos = padding + (self.range*x + posRange * (self.value - self.minValue))/self.range
 		end
 	end
 
 	return self
 end
-
 
 return gui

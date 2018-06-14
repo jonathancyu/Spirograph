@@ -17,7 +17,7 @@ local gui 		= require("gui")
 --------------------------------------------------------------------------------
 
 local radius 			= 200
-local radiusInner 		= 27
+local radiusInner 		= 28
 local lineDist 			= 200
 	local k 			= radiusInner/radius
 	local l 			= lineDist/radiusInner
@@ -28,7 +28,7 @@ local center 			= {x=_G.window_width/2, y=_G.window_height/2}
 
 local get 				= math2.lcm(2, 1, math2.reduce(2*radiusInner, radius - radiusInner)) * math.pi
 
-local drawTime 			=  5
+local drawTime 			= 10
 local tick 				= love.timer.getTime
 	local t 			= 0
 	local start 		= tick()
@@ -44,13 +44,19 @@ local resolution 		= 100
 local trace = line.new()
 local otrace = line.new()
 
-local colorModes = {"distance", "radius", "angle1", "angle2", "blank"} 
+local colorModes = {"distance", "radius", "angle i", "angle ii", "custom", "blank"} 
 local colorMode = 4
 local colorCycleTimes = 5
 local colorDistanceMult = 200
-local c = color.new(255, 0, 255)
-local h, s, v = color.rgbToHsv(c.args())
+local customColor = color.new(255, 100, 0)
+local h, s, v = color.rgbToHsv(customColor.args())
 local starth = h
+local colors = {}
+	for i, name in pairs(colorModes) do
+		colors[name] = color.new(0, 0, 0)
+	end
+	colors["custom"] = customColor
+	local colorText = love.graphics.newText(love.graphics.newFont("Roboto.ttf", 20), colorModes[colorMode])
 
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
@@ -66,7 +72,6 @@ local sliders = {}
 						200, 20, 
 						18, 18, 
 						color.new(255, 255, 255), color.new(0, 0, 0), 
-						"Roboto.ttf", 20, color.new(255, 255, 255),
 						radius, 50, 200,  --default, min, max, 
 						10, 
 						function(self, dt, mx, my)
@@ -80,7 +85,6 @@ local sliders = {}
 						200, 20, 
 						18, 18, 
 						color.new(255, 255, 255), color.new(0, 0, 0), 
-						"Roboto.ttf", 20, color.new(255, 255, 255),
 						radiusInner, 2, radius-1,  --default, min, max, 
 						10,
 						function(self, dt, mx, my)
@@ -90,24 +94,46 @@ local sliders = {}
 						200, 20, 
 						18, 18, 
 						color.new(255, 255, 255), color.new(0, 0, 0), 
-						"Roboto.ttf", 20, color.new(255, 255, 255), 
 						lineDist, -200, 200,--radius,  --default, min, max, 
 						10, 
 						function(self, dt, mx, my)
 							newLineDist = self.value
 						end)
 
+	sliders.red 		= gui.newSlider(15, _G.window_height - 95, 
+						120, 2, 
+						6, 16, 
+						color.new(255, 255, 255), color.new(255, 0, 0), 
+						customColor.r, 0, 254, 
+						0, 
+						function(self, dt, mx, my)
+							customColor.setR(self.value)
+							self.sliderColor.setColor(gui.constrain((self.value/self.range)*255, 50, 255), 50, 50)
+						end)	
+
+	sliders.green 		= gui.newSlider(15, _G.window_height - 75, 
+						120, 2, 
+						6, 16, 
+						color.new(255, 255, 255), color.new(0, 255, 0), 
+						customColor.g, 0, 254, 
+						0, 
+						function(self, dt, mx, my)
+							customColor.setG(self.value)
+							self.sliderColor.setColor(50, gui.constrain((self.value/self.range)*255, 50, 255), 50)
+						end)	
+
+	sliders.blue 		= gui.newSlider(15, _G.window_height - 55, 
+						120, 2, 
+						6, 16, 
+						color.new(255, 255, 255), color.new(0, 255, 0), 
+						customColor.b, 0, 254, 
+						0, 
+						function(self, dt, mx, my)
+							customColor.setB(self.value)
+							self.sliderColor.setColor(50, 50, gui.constrain((self.value/self.range)*255, 50, 255), 50)
+						end)	
+
 local buttons = {}
-	buttons.color = gui.newButton("", 140, 285, 20, 20, 
-		color.new(255, 255, 255), 255,
-		color.new(0, 0, 0), 255,
-		"Roboto.ttf", 20,
-		function(x, y)
-			colorMode = (colorMode)%#colorModes + 1
-			print(colorMode)
-		end,
-		nil, 
-		{color = color.new(175, 255, 152)}, 0.3)
 
 	buttons.draw = gui.newButton("DRAW", 7, 305, 120, 40, 
 		color.new(255, 255, 255), 0, 
@@ -128,8 +154,7 @@ local buttons = {}
 
 			tickrate 		= drawTime/(get*resolution)
 
-			c = color.new(255, 0, 255)
-			h, s, v = color.rgbToHsv(c.args())
+			h, s, v 		= color.rgbToHsv(customColor.args())
 			starth = h
 
 			t 				= 0
@@ -151,7 +176,31 @@ local buttons = {}
 			print(necessaryTicks)
 		end,
 		nil, 
-		{textColor = color.new(175, 255, 152)}, 0.6)
+		{textColor = color.new(200, 200, 200)}, 0.6)
+
+	buttons.colorLeft = gui.newButton("<", 138, 284, 10, 20, 
+		color.new(255, 255, 255), 0, 
+		color.new(255, 255, 255), 255,
+		"Roboto2.ttf", 20, 
+		function(x, y)
+			colorMode = (colorMode - 2)%#colorModes + 1
+			colorText:set(colorModes[colorMode])
+			buttons.colorRight.x = buttons.colorLeft.x + colorText:getWidth() + 32
+		end,
+		nil, 
+		{textColor = color.new(120, 120, 120)}, 0.6)
+	buttons.colorRight = gui.newButton(">", buttons.colorLeft.x + colorText:getWidth() + 32, 284, 10, 20, 
+		color.new(255, 255, 255), 10, 
+		color.new(255, 255, 255), 255,
+		"Roboto2.ttf", 20, 
+		function(x, y)
+			colorMode = (colorMode%#colorModes) + 1
+			colorText:set(colorModes[colorMode])
+			buttons.colorRight.x = buttons.colorLeft.x + colorText:getWidth() + 32
+		end,
+		nil, 
+		{textColor = color.new(120, 120, 120)}, 0.6)
+
 
 function love.load()
 	love.window.setTitle("Spirograph")
@@ -172,7 +221,8 @@ function love.update(dt, recursive)
 	--button handling
 	if not recursive then
 		for name, slider in pairs(sliders) do
-			if gui.isInBounds(mouseX, mouseY, slider.x, slider.y, slider.width, slider.height)	then
+			if gui.isInBounds(mouseX, mouseY, slider.x, slider.y, slider.width, slider.height) or
+			   gui.isInBounds(mouseX, mouseY, slider.pos - slider.sliderWidth/2, slider.y - slider.sliderHeight/2, slider.sliderWidth, slider.sliderHeight) then
 				slider.mouseIsOver = true
 			else					
 				slider.mouseIsOver = false
@@ -189,7 +239,6 @@ function love.update(dt, recursive)
 		end
 	end
 	local current = tick()
-
 	--spirograph drawing 
 	if current-lasttick > tickrate and not done and not paused then	
 		local fps = love.timer.getFPS()
@@ -214,35 +263,22 @@ function love.update(dt, recursive)
 		local y = ((1-k)*math.sin(t) - l*k*math.sin(t*(1-k)/k))
 			lastx = x
 			lasty = y
-		local dist = math2.magnitude(center.x, center.y, x, y)
-		local segmentColor
-		local cm = colorModes[colorMode]
-		if cm == "distance" then
-			h = (starth + (colorCycleTimes*360*(t/get)))%360
-			c.setColor(color.hsvToRgb(h, s, v))
-			segmentColor = c()
-		elseif cm == "radius" then
-			h = (starth + dist*colorDistanceMult)%360
-			c.setColor(color.hsvToRgb(h, s, v))
-			segmentColor = c()
-		elseif cm == "angle1" then
-			local p = ((t*(1-k)/k)%(2*math.pi))/(2*math.pi)
-			h = (starth + (p*360))%360
-			c.setColor(color.hsvToRgb(h, s, v))
-			segmentColor = c()
-		elseif cm == "angle2" then			
-			h = (starth + ((math.atan2(y, x)*360)/(2*math.pi)))%360
-			c.setColor(color.hsvToRgb(h, s, v))
-			segmentColor = c()
-		elseif cm == "blank" then
-			segmentColor = color.new(255, 255, 255)
+		local _colors = {}
+		colors["distance"].setColor(color.hsvToRgb((starth + (colorCycleTimes*360*(t/get)))%360, s, v))
+		colors["radius"].setColor(color.hsvToRgb((starth + math2.magnitude(center.x, center.y, x, y)*colorDistanceMult)%360, s, v))
+		colors["angle i"].setColor(color.hsvToRgb((starth + ((((t*(1-k)/k)%(2*math.pi))/(2*math.pi))*360))%360, s, v))
+		colors["angle ii"].setColor(color.hsvToRgb((starth + ((math.atan2(y, x)*360)/(2*math.pi)))%360, s, v))
+		colors["blank"].setColor(255, 255, 255)
+		for name, v in pairs(colors) do
+			_colors[name] = v()
 		end
-		trace.add(center.x + radius * x, center.y + radius * y, {color = segmentColor})
+		_colors["custom"] = colors["custom"]
+		trace.add(center.x + radius * x, center.y + radius * y, {colors = _colors})
 		if t > get then
 			t = t + incrementrate
 			local x2 = ((1-k)*math.cos(t) + l*k*math.cos(t*(1-k)/k))
 			local y2 = ((1-k)*math.sin(t) - l*k*math.sin(t*(1-k)/k))
-			trace.add(center.x + radius * x2, center.y + radius * y2, {color = segmentColor})
+			trace.add(center.x + radius * x2, center.y + radius * y2, {colors = _colors})
 			done = true
 			print(string.format("Drawn in %f seconds", tick()-start))
 		end
@@ -254,16 +290,11 @@ end
 
 function love.mousepressed(x, y, button, istouch)
 	for name, slider in pairs(sliders) do
-		if gui.isInBounds(x, y, slider.x, slider.y, slider.width, slider.height) then
+		if gui.isInBounds(x, y, slider.x, slider.y, slider.width, slider.height) or
+		   gui.isInBounds(x, y, slider.pos - slider.sliderWidth/2, slider.y - slider.sliderHeight/2, slider.sliderWidth, slider.sliderHeight) then
 			slider.clicked = true
 			slider.step(0, x, y)
 		end
-	end
-end
-
-function love.mousereleased(x, y, button, istouch)
-	for name, slider in pairs(sliders) do
-		slider.clicked = false
 	end
 
 	for name, button in pairs(buttons) do
@@ -273,12 +304,20 @@ function love.mousereleased(x, y, button, istouch)
 	end
 end
 
+function love.mousereleased(x, y, button, istouch)
+	for name, slider in pairs(sliders) do
+		slider.clicked = false
+	end
+end
+
 function love.keypressed(key, scancode, isrepeat)
 	if key == "space" then
 		if paused == true then
 			lasttick = tick()
 		end
 		paused = not paused
+	elseif key == "1" then
+		customColor.setColor(0, 255, 0)
 	end
 end
 
@@ -295,7 +334,12 @@ function love.draw()
 		love.graphics.line(center.x + innercircle.x, center.y + innercircle.y, center.x + radius*lastx, center.y + radius*lasty)
 	end
 	for i = 1, #trace.points-1 do
-		love.graphics.setColor(trace.points[i].color.args())
+		if trace.points[i].colors[colorModes[colorMode]].args() == nil then
+
+			print(trace.points[i].colors[colorModes[colorMode]].args())
+			print(trace.points[i].x, trace.points[i].y)
+		end
+		love.graphics.setColor(trace.points[i].colors[colorModes[colorMode]].args())
 		love.graphics.line(trace.points[i].x, trace.points[i].y,  trace.points[i+1].x, trace.points[i+1].y)
 	end
 
@@ -314,11 +358,22 @@ function love.draw()
 	love.graphics.print("r", 12, 235)
 	love.graphics.print("D", 11, 260)
 
-	love.graphics.print(colorMode-1, 144, 285) -- tables index at 0, lua
-
 	love.graphics.setColor(255, 255, 255)
-	love.graphics.print("COLOR MODE", 10, 285)
 
+	love.graphics.print(newRadius, 215, 210)
+	love.graphics.print(newRadiusInner, 215, 235)
+	love.graphics.print(newLineDist, 215, 260)
+
+	love.graphics.setColor(customColor.args())
+	love.graphics.print("preview", 14, _G.window_height - 50)
+	love.graphics.rectangle("fill", 120, _G.window_height - 45, 15, 15)
+	love.graphics.setColor(255, 255, 255)
+
+
+	love.graphics.print("COLOR MODE", 9, 285)
+	love.graphics.setFont(font2)
+	love.graphics.setFont(font)
+	love.graphics.print(string.upper(colorModes[colorMode]), buttons.colorLeft.x + 12, 285)
 
 	love.graphics.rectangle("fill", center.x - 300, _G.window_height - 30, 600, 2)
 	love.graphics.rectangle("fill", center.x - 300, _G.window_height - 34, 2, 4)
@@ -337,13 +392,11 @@ function love.draw()
 		love.graphics.print("r", 215-2*littleR, 85)
 	end
 	if sliders.lineDist.mouseIsOver or sliders.lineDist.clicked then		
+		love.graphics.line(210 - littleR, 105, 210-littleR + (newLineDist/newRadius)*100, 105)
 		love.graphics.print("D", 210-littleR, 85)
 	end
-	love.graphics.line(210 - littleR, 105, 210-littleR + (newLineDist/newRadius)*100, 105)
 
 	love.graphics.circle("line", 210 - littleR, 105, littleR, 100)
 	love.graphics.circle("line", 110, 105, 100, 100)
 	love.graphics.circle("line", 210-littleR + (newLineDist/newRadius)*100, 105, 1, 100)
-
-	--love.graphics.print()
 end
