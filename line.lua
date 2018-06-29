@@ -1,8 +1,10 @@
 local line = {}
 
-function line.new()
+function line.new(x, y)
 	local self = {points = {}}
 	
+	local pos = {x=x or 0, y=y or 0}
+
 	function self.draw()
 		for i = 1, #self.points-1 do
 			love.graphics.line(self.points[i].x, self.points[i].y,  self.points[i+1].x, self.points[i+1].y)
@@ -10,7 +12,7 @@ function line.new()
 	end
 
 	function self.add(x, y, vals)
-		local segment = {x=x, y=y}
+		local segment = {x=pos.x + x, y=pos.y + y}
 		if vals then 
 			for i, v in pairs(vals) do
 				segment[i] = v

@@ -27,8 +27,10 @@ function gui.newButton(text, x, y, width, height, _color, alpha, textColor, text
 	end
 
 	local tweenstarts = {}
-	for val, goal in pairs(tweens) do
-		tweenstarts[val] = self[val]
+	if tweens then
+		for val, goal in pairs(tweens) do
+			tweenstarts[val] = self[val]
+		end
 	end
 
 	local font = love.graphics.newFont(_font, fontSize)
@@ -43,16 +45,18 @@ function gui.newButton(text, x, y, width, height, _color, alpha, textColor, text
 
 	function self.step(dt, mx, my)
 		if self.mouseIsOver then
-			if self.delta < 1 then
+			if self.delta < 1 and tweens then
 				self.delta = math.min(self.delta + (dt/tweentime), 1)
 			end
 		else
-			if self.delta > 0 then
+			if self.delta > 0 and tweens then
 				self.delta = math.max(self.delta - (dt/tweentime), 0)
 			end
 		end
-		for val, goal in pairs(tweens) do
-			self[val] = tween(tweenstarts[val], goal, self.delta)
+		if tweens then
+			for val, goal in pairs(tweens) do
+				self[val] = tween(tweenstarts[val], goal, self.delta)
+			end
 		end
 	end
 
