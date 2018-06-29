@@ -28,11 +28,9 @@ local center 			= {x=_G.window_width/2, y=_G.window_height/2}
 
 local endTheta 			= math2.lcm(2, 1, math2.reduce(2*radiusInner, radius - radiusInner)) * math.pi
 
-local drawTime 			= 10
+local drawTime 			= 4
 local tick 				= love.timer.getTime
 	local theta			= 0
-	local start 		= tick()
-	local lastTick 		= start
 	local done 			= false
 	local paused 		= false
 
@@ -41,7 +39,9 @@ local resolution 		= 50
 	local fixed_dt 		= 1/60
 	local thetaPerFrame = fixed_dt * (endTheta/drawTime)
 	local incrementRate = (1/resolution)
-	print(thetaPerFrame/incrementRate)
+
+	local currentTime 	= tick()
+	local accumulator 	= 0
 
 local trace = line.new(center.x, center.y)
 local graph  			= {x=center.x - 300, y=_G.window_height - 75}
@@ -163,8 +163,7 @@ local buttons = {}
 			starth = h
 
 			theta			= 0
-			start 			= tick()
-			lasttick 		= start
+			currentTime 	= tick()
 
 			trace.destroy()
 			trace = nil
@@ -266,8 +265,6 @@ end
 
 
 
-local currentTime = tick()
-local accumulator = 0
 
 function love.update(dt)
 	if not love.window.hasFocus() then return end
@@ -311,7 +308,6 @@ function love.update(dt)
 					theta = endTheta
 					updateDrawing()
 					done = true
-					print(string.format("Drawn in %f seconds", tick()-start))
 					break
 				end
 				updateDrawing()
@@ -435,5 +431,6 @@ function love.draw()
 		love.graphics.line(trace.points[i].x, trace.points[i].y,  trace.points[i+1].x, trace.points[i+1].y)
 		love.graphics.line(graph[graph.mode].points[i].x, graph[graph.mode].points[i].y,  graph[graph.mode].points[i+1].x, graph[graph.mode].points[i+1].y)
 	end
-
+	love.graphics.setColor(255, 255, 255)
+	love.graphics.print(tostring(love.timer.getFPS()), _G.window_width - 40, 10)
 end
